@@ -1,14 +1,19 @@
+
+const API_BASE = "https://phi-lab-server.vercel.app/api/v1/lab";
+
 document.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("username"))    initLogin();
+  if (document.getElementById("username")) initLogin();
   if (document.getElementById("issues-grid")) initMain();
 });
 
-function apiURL(endpoint) {
-  return `https://phi-lab-server.vercel.app/api/v1/lab/${endpoint}`;
-}
+
+// LOGIN PAGE
 
 function initLogin() {
-  document.getElementById("login-btn")?.addEventListener("click", login);
+  const loginBtn = document.getElementById("login-btn");
+  if (loginBtn) loginBtn.addEventListener("click", login);
+
+  // Enter key triggers login
   document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") login();
   });
@@ -17,45 +22,54 @@ function initLogin() {
 function login() {
   const username = document.getElementById("username")?.value.trim();
   const password = document.getElementById("password")?.value.trim();
+  const error = document.getElementById("error-msg");
 
   if (username === "admin" && password === "admin123") {
     window.location.href = "main.html";
   } else {
-    document.getElementById("error-msg")?.classList.remove("hidden");
+    if (error) error.classList.remove("hidden");
   }
 }
 
-let allIssues  = [];
+
+// MAIN PAGE
+
+
+let allIssues = [];
 let currentTab = "all";
 
 function initMain() {
-  document.getElementById("tab-all")?.addEventListener("click",    () => setTab("all"));
-  document.getElementById("tab-open")?.addEventListener("click",   () => setTab("open"));
+  // Tab buttons
+  document.getElementById("tab-all")?.addEventListener("click", () => setTab("all"));
+  document.getElementById("tab-open")?.addEventListener("click", () => setTab("open"));
   document.getElementById("tab-closed")?.addEventListener("click", () => setTab("closed"));
 
+  // Search
   document.getElementById("search-btn")?.addEventListener("click", searchIssues);
   document.getElementById("search-input")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") searchIssues();
   });
 
+  // Close modal
   document.getElementById("close-modal-btn")?.addEventListener("click", closeDetail);
 
   loadAllIssues();
 }
 
+
+
 async function loadAllIssues() {
   showSpinner();
   try {
-    const response = await fetch(apiURL("issues"));
-    const data     = await response.json();
-
+    const res = await fetch(API_BASE + "/issues");
+    const data = await res.json();
     if (data.status === "success") {
       allIssues = data.data.map(convertIssue);
       showIssues();
     } else {
       showError("Could not load issues");
     }
-  } catch (err) {
+  } catch {
     showError("Network error");
   }
   hideSpinner();
@@ -64,98 +78,112 @@ async function loadAllIssues() {
 async function loadSingleIssue(id) {
   showModalSpinner();
   try {
-    const response = await fetch(apiURL("issue/" + id));
-    const data     = await response.json();
-
-    if (data.status === "success") {
-      fillModal(convertIssue(data.data));
-    }
-  } catch (err) {}
+    const res = await fetch(API_BASE + "/issue/" + id);
+    const data = await res.json();
+    if (data.status === "success") fillModal(convertIssue(data.data));
+  } catch {}
   hideModalSpinner();
 }
 
-function convertIssue(rawIssue) {
+
+function convertIssue(issue) {
   return {
-    id:        rawIssue.id,
-    title:     rawIssue.title,
-    desc:      rawIssue.description,
-    status:    rawIssue.status,
-    priority:  rawIssue.priority?.toUpperCase() || "",
-    labels:    (rawIssue.labels || []).map(convertLabel),
-    author:    rawIssue.author   || "Unknown",
-    assignee:  rawIssue.assignee || "Unassigned",
-    createdAt: rawIssue.createdAt,
-    updatedAt: rawIssue.updatedAt,
-    date:      makeShortDate(rawIssue.createdAt),
+    id: issue.id,
+    title: issue.title,
+    desc: issue.description,
+    status: issue.status,
+    priority: issue.priority?.toUpperCase() || "",
+    labels: (issue.labels || []).map(convertLabel),
+    author: issue.author || "Unknown",
+    assignee: issue.assignee || "Unassigned",
+    createdAt: issue.createdAt,
+    updatedAt: issue.updatedAt,
+    date: makeShortDate(issue.createdAt)
   };
 }
 
 function convertLabel(label) {
-  const lower = label.toLowerCase();
-
-  if (lower === "bug")         return { label: "BUG" };
-  if (lower === "help wanted") return { label: "HELP WANTED" };
-  if (lower === "enhancement") return { label: "ENHANCEMENT" };
-
+  const l = label.toLowerCase();
+  if (l === "bug") return { label: "BUG" };
+  if (l === "help wanted") return { label: "HELP WANTED" };
+  if (l === "enhancement") return { label: "ENHANCEMENT" };
   return { label: label.toUpperCase() };
 }
 
-function makeShortDate(dateString) {
-  if (!dateString) return "-";
-  const d = new Date(dateString);
-  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+
+function makeShortDate(date) {
+  if (!date) return "-";
+  const d = new Date(date);
+  return `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`;
 }
 
+function makeLongDate(date) {
+  if (!date) return "-";
+  const d = new Date(date);
+  const datePart = d.toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric" });
+  const timePart = d.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit" });
+  return `${datePart} · ${timePart}`;
+}
+
+
 function showSpinner() {
-  document.getElementById("spinner")?.classList.remove("hidden");
+  const s = document.getElementById("spinner");
+  if (s) s.classList.remove("hidden");
 }
 
 function hideSpinner() {
-  document.getElementById("spinner")?.classList.add("hidden");
+  const s = document.getElementById("spinner");
+  if (s) s.classList.add("hidden");
 }
 
 function showModalSpinner() {
-  document.getElementById("modal-spinner")?.classList.remove("hidden");
-  document.getElementById("modal-content")?.classList.add("hidden");
+  const sp = document.getElementById("modal-spinner");
+  const content = document.getElementById("modal-content");
+  if (sp) sp.classList.remove("hidden");
+  if (content) content.classList.add("hidden");
 }
 
 function hideModalSpinner() {
-  document.getElementById("modal-spinner")?.classList.add("hidden");
-  document.getElementById("modal-content")?.classList.remove("hidden");
+  const sp = document.getElementById("modal-spinner");
+  const content = document.getElementById("modal-content");
+  if (sp) sp.classList.add("hidden");
+  if (content) content.classList.remove("hidden");
 }
 
-function showError(message) {
-  const el = document.getElementById("empty-state");
-  if (!el) return;
-  el.textContent = message;
-  el.classList.remove("hidden");
+
+// ERROR DISPLAY
+
+
+function showError(msg) {
+  const empty = document.getElementById("empty-state");
+  if (!empty) return;
+  empty.textContent = msg;
+  empty.classList.remove("hidden");
 }
+
+// TABS
+
 
 function setTab(tab) {
   currentTab = tab;
-
-  const tabs = ["all", "open", "closed"];
-  tabs.forEach((t) => {
+  ["all","open","closed"].forEach(t => {
     const btn = document.getElementById("tab-" + t);
     if (!btn) return;
-
-    if (t === tab) {
-      btn.classList.add("bg-indigo-600", "text-white");
-    } else {
-      btn.classList.remove("bg-indigo-600", "text-white");
-    }
+    if (t === tab) btn.classList.add("bg-indigo-600","text-white");
+    else btn.classList.remove("bg-indigo-600","text-white");
   });
-
   showIssues();
 }
 
-function getFilteredIssues() {
-  if (currentTab === "all") return allIssues;
-  return allIssues.filter((issue) => issue.status === currentTab);
+function filterByTab(list) {
+  if (currentTab === "all") return list;
+  return list.filter(i => i.status === currentTab);
 }
 
+
+
 function showIssues() {
-  const list = getFilteredIssues();
+  const list = filterByTab(allIssues);
   renderCards(list);
   updateIssueCount(list.length);
 }
@@ -164,28 +192,6 @@ function updateIssueCount(count) {
   const el = document.getElementById("issue-count");
   if (!el) return;
   el.textContent = count + (count === 1 ? " Issue" : " Issues");
-}
-
-function makeLabelBadge(label) {
-  const text = label.label.toUpperCase();
-
-  let cssClass = "badge-default";
-  let iconHTML  = "";
-
-  if (text === "BUG") {
-    cssClass = "badge-bug";
-    iconHTML  = `<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`;
-  } else if (text === "HELP WANTED") {
-    cssClass = "badge-help-wanted";
-    iconHTML  = `<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`;
-  } else if (text === "ENHANCEMENT") {
-    cssClass = "badge-enhancement";
-    iconHTML  = `<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`;
-  }
-
-  return `<span class="${cssClass} inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-            ${iconHTML}${text}
-          </span>`;
 }
 
 function renderCards(issueList) {
@@ -199,114 +205,93 @@ function renderCards(issueList) {
   }
   document.getElementById("empty-state")?.classList.add("hidden");
 
-  function getBorderClass(priority) {
-    if (priority === "HIGH")   return "card-high";
-    if (priority === "MEDIUM") return "card-medium";
-    if (priority === "LOW")    return "card-low";
-    return "";
-  }
+  const borderClass = p => (p==="HIGH"?"card-high":p==="MEDIUM"?"card-medium":p==="LOW"?"card-low":"");
+  const priColor = p => (p==="HIGH"?"pri-high":p==="MEDIUM"?"pri-medium":p==="LOW"?"pri-low":"text-gray-400");
 
-  function getPriorityColor(priority) {
-    if (priority === "HIGH")   return "pri-high";
-    if (priority === "MEDIUM") return "pri-medium";
-    if (priority === "LOW")    return "pri-low";
-    return "text-gray-400";
-  }
+  const labelBadge = l => {
+    const t = l.label.toUpperCase();
+    let cls = "badge-default"; let icon = "";
+    if (t==="BUG"){ cls="badge-bug"; icon=`<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`; }
+    else if (t==="HELP WANTED"){ cls="badge-help-wanted"; icon=`<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`; }
+    else if (t==="ENHANCEMENT"){ cls="badge-enhancement"; icon=`<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`; }
+    return `<span class="${cls} inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold">${icon}${t}</span>`;
+  };
 
-  grid.innerHTML = issueList.map((issue) => {
-    const badgesHTML = issue.labels.map(makeLabelBadge).join("");
+  grid.innerHTML = issueList.map(issue => {
+    const tags = issue.labels.map(labelBadge).join("");
     const statusIcon = issue.status === "open"
-      ? `<img src="assets/Open-status.png"   class="w-5 h-5"/>`
+      ? `<img src="assets/Open-status.png" class="w-5 h-5"/>`
       : `<img src="assets/Closed-status.png" class="w-5 h-5"/>`;
 
     return `
-      <div onclick="openDetail(${issue.id})"
-           class="bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:shadow-md ${getBorderClass(issue.priority)}">
-
+      <div onclick="openDetail(${issue.id})" class="bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:shadow-md ${borderClass(issue.priority)}">
         <div class="flex justify-between mb-2">
           ${statusIcon}
-          <span class="text-xs font-bold ${getPriorityColor(issue.priority)}">${issue.priority}</span>
+          <span class="text-xs font-bold ${priColor(issue.priority)}">${issue.priority}</span>
         </div>
-
         <div class="font-semibold text-sm mb-1 text-gray-900">${issue.title}</div>
         <div class="text-xs text-gray-500 mb-2 line-clamp-2">${issue.desc}</div>
-        <div class="flex flex-wrap gap-2">${badgesHTML}</div>
+        <div class="flex flex-wrap gap-2">${tags}</div>
         <div class="text-xs text-gray-400 mt-2">#${issue.id} by ${issue.author}<br>${issue.date}</div>
-
       </div>`;
   }).join("");
 }
 
+
+// SEARCH
+
+
 function searchIssues() {
-  const query = document.getElementById("search-input")?.value.trim().toLowerCase();
-
-  if (!query) {
-    showIssues();
-    return;
-  }
-
-  const results = allIssues.filter((issue) =>
-    issue.title.toLowerCase().includes(query)
-  );
-
-  renderCards(results);
-  updateIssueCount(results.length);
+  const q = document.getElementById("search-input")?.value.trim();
+  if (!q) return showIssues();
+  const filtered = allIssues.filter(i => i.title.toLowerCase().includes(q.toLowerCase()));
+  renderCards(filtered);
+  updateIssueCount(filtered.length);
 }
 
+
+
+
 function openDetail(id) {
-  document.getElementById("detail-overlay")?.classList.add("open");
+  const overlay = document.getElementById("detail-overlay");
+  if (overlay) overlay.classList.add("open");
   loadSingleIssue(id);
 }
 
 function closeDetail() {
-  document.getElementById("detail-overlay")?.classList.remove("open");
+  const overlay = document.getElementById("detail-overlay");
+  if (overlay) overlay.classList.remove("open");
 }
 
 function fillModal(issue) {
-  document.getElementById("m-title").textContent    = issue.title;
-  document.getElementById("m-desc").textContent     = issue.desc;
+  document.getElementById("m-title").textContent = issue.title;
+  document.getElementById("m-desc").textContent = issue.desc;
   document.getElementById("m-assignee").textContent = issue.assignee;
 
-  const pill   = document.getElementById("m-pill");
-  const isOpen = issue.status === "open";
+  const pill = document.getElementById("m-pill");
   if (pill) {
-    pill.className   = `px-4 py-1.5 rounded-full text-[13px] font-semibold text-white ${isOpen ? "bg-green-500" : "bg-purple-500"}`;
-    pill.textContent = isOpen ? "Opened" : "Closed";
+    pill.className = issue.status==="open"
+      ? "px-4 py-1.5 rounded-full text-[13px] font-semibold text-white bg-green-500"
+      : "px-4 py-1.5 rounded-full text-[13px] font-semibold text-white bg-purple-500";
+    pill.textContent = issue.status==="open"?"Opened":"Closed";
   }
 
-  const dateText = issue.createdAt
-    ? new Date(issue.createdAt).toLocaleDateString("en-GB")
-    : issue.date;
-  document.getElementById("m-byline").innerHTML =
-    `Opened by <strong class="text-gray-700 font-medium">${issue.author}</strong> &nbsp;•&nbsp; ${dateText}`;
+  const dateStr = issue.createdAt ? new Date(issue.createdAt).toLocaleDateString("en-GB") : issue.date;
+  document.getElementById("m-byline").innerHTML = `Opened by <strong class="text-gray-700 font-medium">${issue.author}</strong> &nbsp;•&nbsp; ${dateStr}`;
 
-  document.getElementById("m-tags").innerHTML = issue.labels.map((label) => {
-    const text = label.label.toUpperCase();
-    let cssClass = "badge-default";
-    let iconHTML  = "";
-
-    if (text === "BUG") {
-      cssClass = "badge-bug";
-      iconHTML  = `<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`;
-    } else if (text === "HELP WANTED") {
-      cssClass = "badge-help-wanted";
-      iconHTML  = `<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`;
-    } else if (text === "ENHANCEMENT") {
-      cssClass = "badge-enhancement";
-      iconHTML  = `<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`;
-    }
-
-    return `<span class="${cssClass} inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold">
-              ${iconHTML}${text}
-            </span>`;
+  document.getElementById("m-tags").innerHTML = issue.labels.map(l=>{
+    const t = l.label.toUpperCase();
+    let cls="badge-default", icon="";
+    if(t==="BUG"){cls="badge-bug"; icon=`<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`;}
+    else if(t==="HELP WANTED"){cls="badge-help-wanted"; icon=`<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`;}
+    else if(t==="ENHANCEMENT"){cls="badge-enhancement"; icon=`<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`;}
+    return `<span class="${cls} inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold">${icon}${t}</span>`;
   }).join("");
 
-  let priorityBg = "bg-gray-400";
-  if (issue.priority === "HIGH")   priorityBg = "bg-red-500";
-  if (issue.priority === "MEDIUM") priorityBg = "bg-amber-400";
-
-  document.getElementById("m-priority").innerHTML =
-    `<span class="${priorityBg} text-white inline-block px-4 py-1.5 rounded-full text-[12px] font-bold">
-       ${issue.priority || "—"}
-     </span>`;
+  const pri = issue.priority || "";
+  let priCls="bg-gray-400 text-white";
+  if(pri==="HIGH") priCls="bg-red-500 text-white";
+  if(pri==="MEDIUM") priCls="bg-amber-400 text-white";
+  if(pri==="LOW") priCls="bg-gray-400 text-white";
+  document.getElementById("m-priority").innerHTML = `<span class="${priCls} inline-block px-4 py-1.5 rounded-full text-[12px] font-bold">${pri||"—"}</span>`;
 }

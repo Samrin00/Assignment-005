@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GitHub Issues Tracker</title>
+
+  <!-- Tailwind + DaisyUI + Font Awesome + Inter font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          keyframes: {
+            pop: {
+              '0%': { opacity: '0', transform: 'scale(0.95) translateY(8px)' },
+              '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+            },
+            spin: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            }
+          },
+          animation: {
+            pop:  'pop 0.28s cubic-bezier(0.22,1,0.36,1) both',
+            spin: 'spin 0.8s linear infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Card colored top border by priority */
+    .card-high   { border-top: 3px solid #ef4444 !important; }
+    .card-medium { border-top: 3px solid #f97316 !important; }
+    .card-low    { border-top: 3px solid #9ca3af !important; }
+
+    /* Priority text colors */
+    .pri-high   { color: #ef4444; } 
+    .pri-medium { color: #f97316; }
+    .pri-low    { color: #9ca3af; }
+
+    /* Label badge styles */
+    .badge-bug { background: #fff0f0; color: #ef4444; border: 1.5px solid #fca5a5; }
+    .badge-help-wanted { background: #fffbeb; color: #d97706; border: 1.5px solid #fcd34d; }
+    .badge-enhancement { background: #f0fdf4; color: #16a34a; border: 1.5px solid #86efac; }
+    .badge-default { background: #f3f4f6; color: #374151; border: 1.5px solid #d1d5db; }
+
+    /* Modal overlay */
+    #detail-overlay { display: none; }
+    #detail-overlay.open { display: flex; }
+
+    /* Modal spinner */
+    #modal-spinner { display: none; }
+    #modal-spinner.show { display: flex; }
+  </style>
+</head>
+<body class="bg-[#f0f2f5] font-sans min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm h-[60px]">
+  <div class="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+
+    <a href="index.html" class="flex items-center gap-2.5 text-[15px] font-bold text-gray-900 no-underline">
+      <img src="assets/github-logo.png" alt="GitHub" class="w-8 h-8 rounded-full"/>
+      GitHub Issues Tracker
+    </a>
+
+    <div class="flex items-center">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[13px] pointer-events-none"></i>
+        <input id="search-input" type="text" placeholder="Search issues..."
+               class="w-[240px] pl-8 pr-3 py-[9px] border border-gray-200 border-r-0 rounded-l-lg bg-gray-50 text-[13px] text-gray-900 placeholder-gray-400 outline-none focus:border-indigo-500 focus:bg-white transition-all"/>
+      </div>
+      <button id="search-btn"
+              class="flex items-center gap-1.5 px-4 py-[9px] bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-semibold rounded-r-lg border border-indigo-600 transition-colors whitespace-nowrap cursor-pointer">
+        <i class="fa-solid fa-magnifying-glass text-[12px]"></i> Search
+      </button>
+    </div>
+
+  </div>
+</nav>
+
+<div class="max-w-7xl mx-auto px-6 py-8">
+
+  <!-- TABS -->
+  <div class="flex gap-1 mb-5" id="tabs-row">
+    <button id="tab-all" onclick="setTab('all')"
+            class="px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer border bg-indigo-600 text-white border-indigo-600 transition-all flex items-center gap-2">
+       All
+    </button>
+    <button id="tab-open" onclick="setTab('open')"
+            class="px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer border bg-transparent text-gray-500 border-transparent hover:bg-white hover:border-gray-200 hover:text-gray-900 transition-all">
+      Open
+    </button>
+    <button id="tab-closed" onclick="setTab('closed')"
+            class="px-5 py-2 rounded-lg text-[14px] font-medium cursor-pointer border bg-transparent text-gray-500 border-transparent hover:bg-white hover:border-gray-200 hover:text-gray-900 transition-all">
+      Closed
+    </button>
+  </div>
+
+  <!-- ISSUES HEADER -->
+  <div class="bg-white border border-gray-200 rounded-t-2xl px-5 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <img src="assets/Aperture.png" alt="issues" class="w-9 h-9"/>
+      <div>
+        <div id="issue-count" class="text-[17px] font-bold text-gray-900">Loading...</div>
+        <div class="text-[13px] text-gray-500 mt-0.5">Track and manage your project issues</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-5 text-[13px] text-gray-500">
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-600 inline-block"></span> Open</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-purple-600 inline-block"></span> Closed</div>
+    </div>
+  </div>
+
+  <div class="bg-white border border-gray-200 border-t-0 rounded-b-2xl p-4">
+    <!-- Loading  -->
+    <div id="spinner" class="hidden flex-col items-center justify-center py-16 gap-4">
+      <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <p class="text-[14px] text-gray-400 font-medium">Loading issues...</p>
+    </div>
+
+
+    <div id="issues-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5"></div>
+
+    <!-- Empty / error  -->
+    <div id="empty-state" class="hidden text-center py-12 text-gray-400 text-[15px]">
+      No issues found.
+    </div>
+  </div>
+
+</div>
+
+<div id="detail-overlay" onclick="if(event.target===this) closeDetail()"
+     class="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm items-center justify-center p-5">
+  <div class="bg-white rounded-2xl w-full max-w-[640px] max-h-[90vh] overflow-y-auto shadow-2xl animate-pop">
+
+    <!-- Modal loading spinner -->
+    <div id="modal-spinner" class="flex-col items-center justify-center py-20 gap-4">
+      <div class="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+      <p class="text-[14px] text-gray-400">Loading issue...</p>
+    </div>
+
+    
+    <div id="modal-content" class="p-8 pb-7">
+
+      <!-- Title -->
+      <h2 id="m-title" class="text-[26px] font-extrabold text-gray-900 leading-tight mb-3"></h2>
+
+      <div class="flex items-center gap-2 flex-wrap mb-5">
+        <span id="m-pill" class="px-4 py-1.5 rounded-full text-[13px] font-semibold text-white bg-green-500"></span>
+        <span class="text-gray-400">•</span>
+        <span id="m-byline" class="text-[13px] text-gray-500"></span>
+      </div>
+
+      <!-- Label badges -->
+      <div id="m-tags" class="flex gap-2 flex-wrap mb-5"></div>
+
+     
+      <p id="m-desc" class="text-[15px] text-gray-400 leading-relaxed mb-7"></p>
+
+      <!-- Info -->
+      <div class="bg-gray-50 rounded-2xl px-6 py-5 grid grid-cols-2 gap-4 mb-7">
+        <div>
+          <p class="text-[13px] text-gray-400 mb-1.5">Assignee:</p>
+          <div id="m-assignee" class="text-[15px] font-bold text-gray-900"></div>
+        </div>
+        <div>
+          <p class="text-[13px] text-gray-400 mb-1.5">Priority:</p>
+          <div id="m-priority"></div>
+        </div>
+      </div>
+
+      <!-- Close button -->
+      <div class="flex justify-end">
+        <button onclick="closeDetail()"
+                class="px-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[15px] font-semibold transition-colors cursor-pointer">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

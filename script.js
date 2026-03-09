@@ -1,4 +1,3 @@
-
 const API_BASE = "https://phi-lab-server.vercel.app/api/v1/lab";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -39,18 +38,15 @@ let allIssues = [];
 let currentTab = "all";
 
 function initMain() {
-  // Tab buttons
   document.getElementById("tab-all")?.addEventListener("click", () => setTab("all"));
   document.getElementById("tab-open")?.addEventListener("click", () => setTab("open"));
   document.getElementById("tab-closed")?.addEventListener("click", () => setTab("closed"));
 
-  // Search
   document.getElementById("search-btn")?.addEventListener("click", searchIssues);
   document.getElementById("search-input")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") searchIssues();
   });
 
-  // Close modal
   document.getElementById("close-modal-btn")?.addEventListener("click", closeDetail);
 
   loadAllIssues();
@@ -151,17 +147,12 @@ function hideModalSpinner() {
 }
 
 
-// ERROR DISPLAY
-
-
 function showError(msg) {
   const empty = document.getElementById("empty-state");
   if (!empty) return;
   empty.textContent = msg;
   empty.classList.remove("hidden");
 }
-
-// TABS
 
 
 function setTab(tab) {
@@ -179,7 +170,6 @@ function filterByTab(list) {
   if (currentTab === "all") return list;
   return list.filter(i => i.status === currentTab);
 }
-
 
 
 function showIssues() {
@@ -205,7 +195,8 @@ function renderCards(issueList) {
   }
   document.getElementById("empty-state")?.classList.add("hidden");
 
-  const borderClass = p => (p==="HIGH"?"card-high":p==="MEDIUM"?"card-medium":p==="LOW"?"card-low":"");
+  // Border color based on open/closed status
+  const borderClass = status => status === "open" ? "card-open" : "card-closed";
   const priColor = p => (p==="HIGH"?"pri-high":p==="MEDIUM"?"pri-medium":p==="LOW"?"pri-low":"text-gray-400");
 
   const labelBadge = l => {
@@ -224,7 +215,7 @@ function renderCards(issueList) {
       : `<img src="assets/Closed-status.png" class="w-5 h-5"/>`;
 
     return `
-      <div onclick="openDetail(${issue.id})" class="bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:shadow-md ${borderClass(issue.priority)}">
+      <div onclick="openDetail(${issue.id})" class="bg-white border border-gray-200 rounded-xl p-3 cursor-pointer hover:shadow-md ${borderClass(issue.status)}">
         <div class="flex justify-between mb-2">
           ${statusIcon}
           <span class="text-xs font-bold ${priColor(issue.priority)}">${issue.priority}</span>
@@ -248,8 +239,6 @@ function searchIssues() {
   renderCards(filtered);
   updateIssueCount(filtered.length);
 }
-
-
 
 
 function openDetail(id) {

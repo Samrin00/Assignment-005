@@ -97,15 +97,13 @@ function convertIssue(issue) {
     date: makeShortDate(issue.createdAt)
   };
 }
-
 function convertLabel(label) {
   const l = label.toLowerCase();
-  if (l === "bug") return { label: "BUG" };
-  if (l === "help wanted") return { label: "HELP WANTED" };
-  if (l === "enhancement") return { label: "ENHANCEMENT" };
-  return { label: label.toUpperCase() };
+  if (l === "bug") return { label: "BUG", icon: "assets/bug.png" };
+  if (l === "help wanted") return { label: "HELP WANTED", icon: "assets/l.png" };
+  if (l === "enhancement") return { label: "ENHANCEMENT", icon: "assets/v.png" };
+  return { label: label.toUpperCase(), icon: "" };
 }
-
 
 function makeShortDate(date) {
   if (!date) return "-";
@@ -202,9 +200,9 @@ function renderCards(issueList) {
   const labelBadge = l => {
     const t = l.label.toUpperCase();
     let cls = "badge-default"; let icon = "";
-    if (t==="BUG"){ cls="badge-bug"; icon=`<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`; }
-    else if (t==="HELP WANTED"){ cls="badge-help-wanted"; icon=`<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`; }
-    else if (t==="ENHANCEMENT"){ cls="badge-enhancement"; icon=`<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`; }
+    if (t==="BUG"){ cls="badge-bug"; icon=`<img src="assets/bug.png" class="w-3.5 h-3.5"/>`; }
+    else if (t==="HELP WANTED"){ cls="badge-help-wanted"; icon=`<img src="assets/l.png" class="w-3.5 h-3.5"/>`; }
+    else if (t==="ENHANCEMENT"){ cls="badge-enhancement"; icon=`<img src="assets/v.png" class="w-3.5 h-3.5"/>`; }
     return `<span class="${cls} inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold">${icon}${t}</span>`;
   };
 
@@ -271,9 +269,9 @@ function fillModal(issue) {
   document.getElementById("m-tags").innerHTML = issue.labels.map(l=>{
     const t = l.label.toUpperCase();
     let cls="badge-default", icon="";
-    if(t==="BUG"){cls="badge-bug"; icon=`<img src="assets/bug-icon.png" class="w-3.5 h-3.5"/>`;}
-    else if(t==="HELP WANTED"){cls="badge-help-wanted"; icon=`<img src="assets/help-icon.png" class="w-3.5 h-3.5"/>`;}
-    else if(t==="ENHANCEMENT"){cls="badge-enhancement"; icon=`<img src="assets/enhancement-icon.png" class="w-3.5 h-3.5"/>`;}
+    if(t==="BUG"){cls="badge-bug"; icon=`<img src="assets/bug.png" class="w-3.5 h-3.5"/>`;}
+    else if(t==="HELP WANTED"){cls="badge-help-wanted"; icon=`<img src="assets/l.png" class="w-3.5 h-3.5"/>`;}
+    else if(t==="ENHANCEMENT"){cls="badge-enhancement"; icon=`<img src="assets/v.png" class="w-3.5 h-3.5"/>`;}
     return `<span class="${cls} inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-bold">${icon}${t}</span>`;
   }).join("");
 
